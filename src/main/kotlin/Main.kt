@@ -7,6 +7,10 @@ import io.reactivex.rxjava3.subjects.PublishSubject
 import io.reactivex.rxjava3.subjects.ReplaySubject
 
 fun main(args: Array<String>) {
+    pratice2()
+}
+
+fun pratice() {
     exampleOf("PublishSubject") {
         /*
         You’re using the default RxJava subscribe method rather than the fancier subscribeBy since you only care about the next event for now
@@ -168,9 +172,9 @@ fun main(args: Array<String>) {
             }
 
             // Add code to update dealtHand here
-            if(points(hand) > 21){
+            if (points(hand) > 21) {
                 dealtHand.onError(HandError.Busted())
-            }else{
+            } else {
                 dealtHand.onNext(hand)
             }
         }
@@ -187,5 +191,145 @@ fun main(args: Array<String>) {
 
         subscriptions.dispose()
     }
+}
+
+fun pratice2() {
+    exampleOf("PublishSubject") {
+        val publishSubject = PublishSubject.create<Int>()
+        publishSubject.onNext(0)
+        val sub1 = publishSubject.subscribe { println(it) }
+        publishSubject.onNext(1)
+        publishSubject.onNext(2)
+        val sub2 =
+            publishSubject.subscribeBy(onNext = { printWithLabel("2)", it) }, onComplete = { println("2 Complete ") })
+        publishSubject.onNext(3)
+        sub1.dispose()
+        publishSubject.onNext(4)
+
+        publishSubject.onComplete()
+        publishSubject.onNext(5)
+
+        val sub3 =
+            publishSubject.subscribeBy(onNext = { printWithLabel("3)", it) }, onComplete = { println("3 Complete ") })
+        //publishSubject.onNext(6)
+    }
+
+    exampleOf("BehaviorSubject") {
+        val compositeDisposable = CompositeDisposable()
+        val behaviorSubject = BehaviorSubject.createDefault("Init Value")
+        behaviorSubject.onNext("X")
+        val subscriptionOne = behaviorSubject.subscribeBy(
+            onNext = { printWithLabel("1)", it) },
+            onError = { printWithLabel("1)", it) }
+        )
+
+        behaviorSubject.onNext("Haha")
+
+        behaviorSubject.onError(java.lang.RuntimeException("Error!"))
+        val sub2 = behaviorSubject.subscribeBy(
+            onNext = { printWithLabel("2)", it) },
+            onError = { printWithLabel("2)", it) }
+        )
+    }
+
+    exampleOf("BehaviorSubject State") {
+        val compositeDisposable = CompositeDisposable()
+        val behaviorSubject = BehaviorSubject.createDefault(0)
+        println(behaviorSubject.value)
+
+        compositeDisposable.add(behaviorSubject.subscribeBy {
+            printWithLabel("1)", it)
+        })
+        behaviorSubject.onNext(1)
+        println(behaviorSubject.value)
+        compositeDisposable.dispose()
+    }
+
+    exampleOf("Replay Subject") {
+        val compositeDisposable = CompositeDisposable()
+        val replaySubject = ReplaySubject.createWithSize<String>(2)
+        replaySubject.onNext("1")
+        replaySubject.onNext("2")
+        replaySubject.onNext("3")
+        val sub1 = replaySubject.subscribeBy(
+            onNext = { printWithLabel("1)", it) },
+            onError = { printWithLabel("1)", it) }
+        )
+        val sub2 = replaySubject.subscribeBy(
+            onNext = { printWithLabel("2)", it) },
+            onError = { printWithLabel("2)", it) }
+        )
+        replaySubject.onNext("4")
+        replaySubject.onError(RuntimeException("Error!"))
+        val sub3 = replaySubject.subscribeBy(
+            onNext = { printWithLabel("3)", it) },
+            onError = { printWithLabel("3)", it) }
+        )
+    }
+
+    exampleOf("AsyncSubject") {
+        val compositeDisposable = CompositeDisposable()
+        val asyncSubject = AsyncSubject.create<Int>()
+        val sub1 = asyncSubject.subscribeBy(onNext = { printWithLabel("1)", it) },
+            onComplete = { printWithLabel("1)", "Complete") })
+        compositeDisposable.add(sub1)
+        asyncSubject.onNext(1)
+        asyncSubject.onNext(2)
+
+        val sub2 = asyncSubject.subscribeBy(onNext = { printWithLabel("2)", it) },
+            onComplete = { printWithLabel("2)", "Complete") })
+        asyncSubject.onNext(3)
+        asyncSubject.onComplete()
+        compositeDisposable.dispose()
+    }
+
+    exampleOf("RxReplay") {
+        val compositeDisposable = CompositeDisposable()
+        val publishRelay = PublishRelay.create<Int>()
+        val sub1 = publishRelay.subscribeBy(onNext = { printWithLabel("1)", it) })
+        compositeDisposable.add(sub1)
+        publishRelay.accept(1)
+        publishRelay.accept(2)
+        publishRelay.accept(3)
+    }
+
+    exampleOf("Challenge PublishSubject") {
+
+        val subscriptions = CompositeDisposable()
+
+        val dealtHand = PublishSubject.create<List<Pair<String, Int>>>()
+
+        fun deal(cardCount: Int) {
+            val deck = cards
+            var cardsRemaining = 52
+            val hand = mutableListOf<Pair<String, Int>>()
+
+            (0 until cardCount).forEach { _ ->
+                val randomIndex = (0 until cardsRemaining).random()
+                hand.add(deck[randomIndex])
+                deck.removeAt(randomIndex)
+                cardsRemaining -= 1
+            }
+
+            // Add code to update dealtHand here
+            if (points(hand) > 21) {
+                dealtHand.onError(HandError.Busted())
+            } else {
+                dealtHand.onNext(hand)
+            }
+        }
+
+        // Add subscription to dealtHand here
+        val sub1 = dealtHand.subscribeBy(
+            onNext = { hand -> println("${cardString(hand)} - point: ${points(hand)}") },
+            onError = { println(it) }
+        )
+        subscriptions.add(sub1)
+
+        deal(3)
+
+        subscriptions.dispose()
+    }
+
 
 }
